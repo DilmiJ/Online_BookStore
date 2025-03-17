@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+//import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -31,8 +32,13 @@ const Login: React.FC = () => {
       } else {
         navigate('/dashboard');
       }
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Something went wrong');
+    } catch (error: unknown) {
+      
+      const err = error as AxiosError<{ message: string }>;
+      const errorMessage = err.response?.data?.message || 'Something went wrong. Please try again.';
+      
+      alert(errorMessage);
+      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }

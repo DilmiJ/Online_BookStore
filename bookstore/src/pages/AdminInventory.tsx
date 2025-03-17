@@ -15,7 +15,7 @@ const AdminInventory: React.FC = () => {
   };
 
   const goToManageInventory = () => {
-    navigate('/admin/inventory/manage');
+    navigate('/admin/inventory/update');
   };
 
   return (

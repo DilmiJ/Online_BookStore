@@ -13,9 +13,9 @@ const AddNewBook: React.FC = () => {
     description: '',
   });
 
-  const [images, setImages] = useState<File[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
 
+  // ✅ handleChange stays here
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -24,45 +24,61 @@ const AddNewBook: React.FC = () => {
     }));
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files) {
-      const selectedFiles = Array.from(files).slice(0, 5); 
-      setImages(selectedFiles);
-      const urls = selectedFiles.map((file) => URL.createObjectURL(file));
-      setPreviewUrls(urls);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  // ✅ handleSubmit goes here!
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (images.length < 1) {
-      alert('Please upload at least one image.');
-      return;
+    setLoading(true);
+  
+    try {
+      const response = await fetch('http://localhost:5000/api/books', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+  
+      if (!response.ok) {
+        console.error('Backend error:', response.status, response.statusText);
+        throw new Error('Failed to submit book');
+      }
+      
+  
+      const result = await response.json();
+      console.log('Server response:', result);
+      alert('Book added successfully!');
+  
+      setFormData({
+        title: '',
+        author: '',
+        quantity: '',
+        price: '',
+        description: '',
+      });
+  
+    } catch (error: unknown) {
+      let errorMessage = 'Failed to add the book.';
+  
+      if (error instanceof Error) {
+        console.error('Error:', error.message);
+        errorMessage = error.message;
+      } else {
+        console.error('Unknown error:', error);
+      }
+  
+      alert(errorMessage);
+  
+    } finally {
+      setLoading(false);
     }
-
-    
-    console.log('Form Data:', formData);
-    console.log('Images:', images);
-
-    alert('Book added successfully!');
-
-    
-    setFormData({
-      title: '',
-      author: '',
-      quantity: '',
-      price: '',
-      description: '',
-    });
-    setImages([]);
-    setPreviewUrls([]);
   };
+  
 
+
+  // ✅ JSX Return (Form and Button)
   return (
     <div className="min-h-screen bg-gray-100 p-8">
-      
+      {/* Back button */}
       <button
         onClick={() => navigate('/admin/inventory')}
         className="flex items-center text-blue-600 hover:text-blue-800 mb-6"
@@ -73,12 +89,8 @@ const AddNewBook: React.FC = () => {
 
       <h1 className="text-3xl font-bold text-center mb-8 text-red-600">Add New Book</h1>
 
-      <form
-        onSubmit={handleSubmit}
-        className="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-lg"
-      >
+      <form onSubmit={handleSubmit} className="max-w-3xl mx-auto bg-white p-8 rounded-lg shadow-lg">
         <div className="grid grid-cols-1 gap-6">
-          
           <div>
             <label className="block font-medium text-gray-700 mb-1">Book Title</label>
             <input
@@ -91,7 +103,6 @@ const AddNewBook: React.FC = () => {
             />
           </div>
 
-          
           <div>
             <label className="block font-medium text-gray-700 mb-1">Author</label>
             <input
@@ -104,7 +115,6 @@ const AddNewBook: React.FC = () => {
             />
           </div>
 
-          
           <div>
             <label className="block font-medium text-gray-700 mb-1">Quantity in Stock</label>
             <input
@@ -118,7 +128,6 @@ const AddNewBook: React.FC = () => {
             />
           </div>
 
-          
           <div>
             <label className="block font-medium text-gray-700 mb-1">Price (LKR)</label>
             <input
@@ -132,7 +141,6 @@ const AddNewBook: React.FC = () => {
             />
           </div>
 
-          
           <div>
             <label className="block font-medium text-gray-700 mb-1">Description</label>
             <textarea
@@ -144,36 +152,16 @@ const AddNewBook: React.FC = () => {
             />
           </div>
 
-          
-          <div>
-            <label className="block font-medium text-gray-700 mb-1">
-              Upload Book Photos (1-5)
-            </label>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleImageChange}
-              className="w-full"
-            />
-            <div className="flex flex-wrap gap-4 mt-4">
-              {previewUrls.map((url, index) => (
-                <img
-                  key={index}
-                  src={url}
-                  alt={`Preview ${index + 1}`}
-                  className="w-24 h-24 object-cover rounded border"
-                />
-              ))}
-            </div>
-          </div>
-
-          
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition"
+            disabled={loading}
+            className={`w-full py-3 rounded-lg transition ${
+              loading
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
           >
-            Add Book
+            {loading ? 'Submitting...' : 'Add Book'}
           </button>
         </div>
       </form>
