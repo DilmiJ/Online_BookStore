@@ -1,4 +1,7 @@
 
+@import "tailwindcss";
+
+
 
 /* Blurred Background Layer */
 body::before {

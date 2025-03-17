@@ -1,10 +1,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import tsconfigPaths from "vite-tsconfig-paths"; // optional, if you're using path aliases
+import tsconfigPaths from "vite-tsconfig-paths"; 
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [
     react(),
-    tsconfigPaths(), // optional
+    tsconfigPaths(), // opt
+    tailwindcss(),
   ],
 });
