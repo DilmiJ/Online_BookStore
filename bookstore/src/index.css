@@ -1,0 +1,30 @@
+
+
+/* Blurred Background Layer */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: url('/bg.jpg.jpg'); /* adjust path if needed */
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  filter: blur(5px); /*  blur strength */
+  z-index: -1; /*  place behind all content */
+}
+/* Dancing animation keyframes */
+@keyframes smoothFloat {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-15px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.smooth-float {
+  animation: smoothFloat 4s ease-in-out infinite;
+}
