@@ -46,26 +46,25 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/books/:id', async (req, res) => {
+  const { id } = req.params;
+  const { title, author, quantity, price, description } = req.body;
+
   try {
-    const bookId = req.params.id;
-
-    const { title, author, quantity, price, description } = req.body;
-
     const updatedBook = await Book.findByIdAndUpdate(
-      bookId,
+      id,
       { title, author, quantity, price, description },
-      { new: true } // Return the updated book
+      { new: true, runValidators: true }
     );
 
     if (!updatedBook) {
-      return res.status(404).json({ message: 'Book not found' });
+      return res.status(404).json({ message: 'Book not found!' });
     }
 
-    res.json({ message: 'Book updated successfully', book: updatedBook });
+    res.json(updatedBook);
   } catch (error) {
-    console.error('Failed to update book:', error.message);
-    res.status(500).json({ message: 'Failed to update book', error: error.message });
+    console.error('Error updating book:', error.message);
+    res.status(500).json({ message: 'Failed to update the book' });
   }
 });
 

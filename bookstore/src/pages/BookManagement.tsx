@@ -20,37 +20,24 @@ const BookManagement: React.FC = () => {
     try {
       setLoading(true);
       const res = await fetch('http://localhost:5000/api/books');
-  
+
       if (!res.ok) {
         throw new Error('Failed to fetch books');
       }
-  
+
       const data = await res.json();
-  
-      console.log('Fetched books:', data); 
       setBooks(data);
-    } catch (error: unknown) {
-      let errorMessage = 'Failed to load books';
-  
-      if (error instanceof Error) {
-        console.error('Error fetching books:', error.message);
-        errorMessage = error.message;
-      } else {
-        console.error('Unexpected error fetching books:', error);
-      }
-  
-      alert(errorMessage);
+    } catch (error: any) {
+      alert(error.message || 'Failed to load books');
     } finally {
       setLoading(false);
     }
   };
-  
 
   useEffect(() => {
     fetchBooks();
   }, []);
 
-  
   const deleteBook = async (bookId: string) => {
     if (!window.confirm('Are you sure you want to delete this book?')) return;
 
@@ -66,22 +53,12 @@ const BookManagement: React.FC = () => {
       }
 
       alert('Book deleted successfully!');
-      fetchBooks(); 
-    } catch (error: unknown) {
-      let errorMessage = 'Failed to delete the book.';
-
-      if (error instanceof Error) {
-        console.error('Error deleting book:', error.message);
-        errorMessage = error.message;
-      } else {
-        console.error('Unknown error deleting book:', error);
-      }
-
-      alert(errorMessage);
+      fetchBooks();
+    } catch (error: any) {
+      alert(error.message || 'Failed to delete the book.');
     }
   };
 
-  
   const filteredBooks = books.filter((book) =>
     book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     book.author.toLowerCase().includes(searchTerm.toLowerCase())
@@ -91,7 +68,6 @@ const BookManagement: React.FC = () => {
     <div className="min-h-screen bg-gray-100 p-6">
       <h1 className="text-3xl font-bold text-center mb-6 text-blue-600">Manage Books</h1>
 
-     
       <div className="flex justify-center mb-4">
         <input
           type="text"
@@ -131,6 +107,7 @@ const BookManagement: React.FC = () => {
                     <td className="px-4 py-2">{book.quantity}</td>
                     <td className="px-4 py-2">{book.price}</td>
                     <td className="px-4 py-2 flex justify-center space-x-2">
+                      
                       <button
                         onClick={() => navigate(`/admin/inventory/update/${book._id}`)}
                         className="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded"

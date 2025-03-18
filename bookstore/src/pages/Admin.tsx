@@ -34,8 +34,9 @@ const Admin: React.FC = () => {
     navigate('/admin/inventory');
   };
 
+  
   const goToSales = () => {
-    navigate('/admin/sales');
+    navigate('/admin/orders');
   };
 
   return (

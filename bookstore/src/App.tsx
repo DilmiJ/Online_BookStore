@@ -4,11 +4,18 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Sighnup';
-import Dashboard from './pages/Dashboar'; // Confirm file name should be Dashboar or Dashboard
+import Dashboard from './pages/Dashboar';
 import Admin from './pages/Admin';
 import AdminInventory from './pages/AdminInventory';
 import AddNewBook from './pages/AddNewBook';
-import BookManagement from './pages/BookManagement'; // Update & Delete page
+import BookManagement from './pages/BookManagement'; 
+import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
+import Orders from './pages/Orders';
+import AdminOrders from './pages/AdminOrders';
+import UpdateBook from './pages/UpdateBook'; 
+
+
 
 const App: React.FC = () => {
   return (
@@ -22,8 +29,11 @@ const App: React.FC = () => {
         <Route path="/admin/inventory" element={<AdminInventory />} />
         <Route path="/admin/inventory/add" element={<AddNewBook />} />
         <Route path="/admin/inventory/update" element={<BookManagement />} />
-
-        {/* Wildcard Route */}
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/admin/orders" element={<AdminOrders />} />
+        <Route path="/admin/inventory/update/:id" element={<UpdateBook />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>

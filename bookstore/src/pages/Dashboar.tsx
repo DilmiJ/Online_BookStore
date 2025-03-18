@@ -38,13 +38,14 @@ const Dashboard: React.FC = () => {
 
         
         <div className="flex items-center space-x-4">
-          <button
-            onClick={() => navigate('/cart')}
-            className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-full shadow hover:bg-green-600 transition"
-          >
-            <ShoppingCart className="w-5 h-5" />
-            <span>Cart</span>
-          </button>
+        <button
+  onClick={() => navigate('/cart')}
+  className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-full shadow hover:bg-green-600 transition"
+>
+  <ShoppingCart className="w-5 h-5" />
+  <span>Cart</span>
+</button>
+
           <button
             onClick={handleLogout}
             className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-full shadow hover:bg-red-600 transition"

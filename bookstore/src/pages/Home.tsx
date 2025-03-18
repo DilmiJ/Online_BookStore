@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaSearch, FaUserAlt } from 'react-icons/fa';
+import { FaSearch, FaUserAlt, FaShoppingCart } from 'react-icons/fa';
 
 interface Book {
   _id: string;
@@ -15,19 +15,17 @@ const Home: React.FC = () => {
   const [books, setBooks] = useState<Book[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [cartItems, setCartItems] = useState<Book[]>([]); 
 
-  // ✅ Fetch books from the backend
+  // Fetch books from the backend
   const fetchBooks = async () => {
     setLoading(true);
     try {
       const res = await fetch('http://localhost:5000/api/books');
       const data = await res.json();
 
-      console.log('Fetched books:', data);
-
       if (res.ok) {
-        // 👇 Check if backend returns { books: [...] } or just [...]
-        const fetchedBooks = data.books || data; // Fallback if no data.books exists
+        const fetchedBooks = data.books || data;
         setBooks(fetchedBooks);
       } else {
         console.error('Error fetching books:', data.message);
@@ -39,11 +37,33 @@ const Home: React.FC = () => {
     }
   };
 
+  // Load cart items from localStorage when page loads
   useEffect(() => {
     fetchBooks();
+
+    const storedCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    setCartItems(storedCart);
   }, []);
 
-  // ✅ Search filter
+  // Handle adding a book to the cart
+  const handleAddToCart = (book: Book) => {
+    
+    const isAlreadyInCart = cartItems.find((item) => item._id === book._id);
+
+    let updatedCart;
+
+    if (isAlreadyInCart) {
+      alert('This book is already in your cart!');
+      return;
+    } else {
+      updatedCart = [...cartItems, book];
+    }
+
+    
+    setCartItems(updatedCart);
+    localStorage.setItem('cart', JSON.stringify(updatedCart));
+  };
+
   const filteredBooks = books.filter((book) =>
     book.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -51,8 +71,22 @@ const Home: React.FC = () => {
   return (
     <div className="relative min-h-screen bg-gradient-to-r from-blue-100 to-blue-300 p-4">
 
-      {/* 🔑 Login Button */}
-      <div className="absolute top-6 right-6">
+      {/* Top Right Buttons: Login and Cart */}
+      <div className="absolute top-6 right-6 flex space-x-4">
+
+        {/* Cart Icon */}
+        <Link to="/cart"> {/* you can create a /cart route later */}
+          <div className="relative">
+            <FaShoppingCart className="text-3xl text-white cursor-pointer hover:text-yellow-300" />
+            {cartItems.length > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5">
+                {cartItems.length}
+              </span>
+            )}
+          </div>
+        </Link>
+
+        {/* Login Button */}
         <Link to="/login">
           <button className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
             <FaUserAlt />
@@ -61,7 +95,7 @@ const Home: React.FC = () => {
         </Link>
       </div>
 
-      {/* 🔎 Search Bar */}
+      {/* Search Bar */}
       <div className="flex justify-center mt-16">
         <div className="relative w-full max-w-md">
           <input
@@ -75,7 +109,7 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* 📚 Store Header */}
+      {/* Title Section */}
       <div className="text-center mt-8">
         <h1 className="text-5xl md:text-7xl font-extrabold italic text-white">
           JAYANETTHI BOOK STORE
@@ -85,12 +119,12 @@ const Home: React.FC = () => {
         </h2>
       </div>
 
-      {/* ⏳ Loading Indicator */}
+      {/* Loading Spinner */}
       {loading && (
         <p className="text-center mt-10 text-lg text-gray-600">Loading books...</p>
       )}
 
-      {/* 📕 Book Grid */}
+      {/* Book List */}
       {!loading && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-12 max-w-7xl mx-auto">
           {filteredBooks.length === 0 ? (
@@ -101,24 +135,32 @@ const Home: React.FC = () => {
                 key={book._id}
                 className="bg-white rounded-2xl shadow-md p-4 transform transition hover:scale-105 flex flex-col justify-between"
               >
+                {/* Book Cover (Placeholder) */}
                 <div className="flex justify-center items-center h-48 bg-gray-100 rounded-xl mb-4">
-                  {/* If you have image URLs, add <img> here */}
                   <span className="text-6xl">📚</span>
                 </div>
 
+                {/* Book Info */}
                 <h3 className="text-lg font-semibold text-gray-800">{book.title}</h3>
                 <p className="text-gray-600">By {book.author}</p>
                 <p className="text-gray-700 mt-2">Price: LKR {book.price}</p>
                 <p className="text-gray-700">In Stock: {book.quantity}</p>
                 <p className="text-gray-500 mt-2 text-sm">{book.description}</p>
 
+                {/* Buttons */}
                 <div className="flex justify-between mt-4">
-                  <button className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm">
+                  <button
+                    onClick={() => handleAddToCart(book)}
+                    className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                  >
                     Add to Cart
                   </button>
-                  <button className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm">
-                    View
-                  </button>
+
+                  <Link to={`/book/${book._id}`}> {/* Optional: view single book details */}
+                    <button className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm">
+                      View
+                    </button>
+                  </Link>
                 </div>
               </div>
             ))

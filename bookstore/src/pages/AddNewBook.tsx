@@ -15,7 +15,7 @@ const AddNewBook: React.FC = () => {
 
   const [loading, setLoading] = useState(false);
 
-  // ✅ handleChange stays here
+ 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -24,7 +24,7 @@ const AddNewBook: React.FC = () => {
     }));
   };
 
-  // ✅ handleSubmit goes here!
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -75,7 +75,7 @@ const AddNewBook: React.FC = () => {
   
 
 
-  // ✅ JSX Return (Form and Button)
+  
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       {/* Back button */}

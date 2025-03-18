@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import { motion } from 'framer-motion';
 
 const Signup: React.FC = () => {
   const navigate = useNavigate();
@@ -11,15 +12,12 @@ const Signup: React.FC = () => {
     password: '',
   });
 
-  // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
       const response = await axios.post('http://localhost:5000/api/auth/signup', formData);
       alert(response.data.message);
@@ -34,65 +32,94 @@ const Signup: React.FC = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-green-50">
-      <div className="bg-white p-6 rounded shadow-md w-full max-w-sm">
-        <h2 className="text-xl font-semibold text-center text-green-700 mb-4">Sign Up</h2>
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-white">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8, y: 30 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+        className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-sm"
+      >
+        <h2 className="text-2xl font-bold text-center text-blue-600 mb-6 tracking-wide">
+          Create an Account
+        </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name Field */}
-          <div>
-            <label htmlFor="name" className="block text-xs font-medium text-gray-700">Name</label>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <label htmlFor="name" className="block text-sm font-medium text-gray-600 mb-1">
+              Name
+            </label>
             <input
               type="text"
               id="name"
               required
               value={formData.name}
               onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-400 focus:border-green-400 text-sm"
+              className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-sm transition"
             />
-          </div>
+          </motion.div>
 
-          {/* Email Field */}
-          <div>
-            <label htmlFor="email" className="block text-xs font-medium text-gray-700">Email</label>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <label htmlFor="email" className="block text-sm font-medium text-gray-600 mb-1">
+              Email
+            </label>
             <input
               type="email"
               id="email"
               required
               value={formData.email}
               onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-400 focus:border-green-400 text-sm"
+              className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-sm transition"
             />
-          </div>
+          </motion.div>
 
-          {/* Password Field */}
-          <div>
-            <label htmlFor="password" className="block text-xs font-medium text-gray-700">Password</label>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <label htmlFor="password" className="block text-sm font-medium text-gray-600 mb-1">
+              Password
+            </label>
             <input
               type="password"
               id="password"
               required
               value={formData.password}
               onChange={handleChange}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-green-400 focus:border-green-400 text-sm"
+              className="w-full px-4 py-2 border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none text-sm transition"
             />
-          </div>
+          </motion.div>
 
-          {/* Submit Button */}
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             type="submit"
-            className="w-full py-2 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition"
+            className="w-full py-2 bg-blue-500 text-white rounded-lg text-sm font-medium transition hover:bg-blue-600"
           >
-            Create Account
-          </button>
+            Sign Up
+          </motion.button>
         </form>
 
-        {/* Link to Login */}
-        <p className="mt-4 text-center text-xs text-gray-600">
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mt-6 text-center text-xs text-gray-500"
+        >
           Already have an account?{' '}
-          <Link to="/login" className="text-green-500 hover:underline">Login</Link>
-        </p>
-      </div>
+          <Link to="/login" className="text-blue-500 hover:underline">
+            Login
+          </Link>
+        </motion.p>
+      </motion.div>
     </div>
   );
 };
