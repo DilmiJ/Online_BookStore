@@ -1,10 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
-const authMiddleware = require('../middleware/authMiddleware');
 
-
-// Place a new order
 router.post('/', async (req, res) => {
   try {
     const {
@@ -48,14 +45,12 @@ router.post('/', async (req, res) => {
       message: 'Order placed successfully!',
       order: savedOrder
     });
-
   } catch (error) {
+    console.error('Place order error:', error);
     res.status(500).json({ message: 'Failed to place order' });
   }
 });
 
-
-// Get user orders by email
 router.get('/:email', async (req, res) => {
   try {
     const email = req.params.email;
@@ -72,7 +67,6 @@ router.get('/:email', async (req, res) => {
   }
 });
 
-// Admin - Get all orders
 router.get('/admin/all', async (req, res) => {
   try {
     const orders = await Order.find().sort({ createdAt: -1 });
@@ -83,7 +77,6 @@ router.get('/admin/all', async (req, res) => {
   }
 });
 
-// Admin - Update order status by ID
 router.put('/admin/orders/:id/status', async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;

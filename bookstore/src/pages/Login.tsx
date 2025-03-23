@@ -8,7 +8,8 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -16,26 +17,37 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', formData);
-      const userData = response.data.user;
+      const response = await axios.post('http://localhost:5000/api/auth/login', {
+        email: formData.email,
+        password: formData.password,
+      });
 
-      alert(response.data.message);
+      const { user, message } = response.data;
 
-      localStorage.setItem('user', JSON.stringify(userData));
-      localStorage.setItem('token', response.data.token);
-navigate('/dashboard');
+      alert(message || 'Login successful!');
 
+      localStorage.setItem('user', JSON.stringify(user));
 
-      if (userData.role === 'admin') {
+      if (user.role === 'admin') {
         navigate('/admin');
       } else {
         navigate('/dashboard');
       }
     } catch (error: unknown) {
       const err = error as AxiosError<{ message: string }>;
-      const errorMessage = err.response?.data?.message || 'Something went wrong. Please try again.';
+
+      if (err.response) {
+        console.error('Server responded with:', err.response.data);
+      } else if (err.request) {
+        console.error('No response received:', err.request);
+      } else {
+        console.error('Error setting up request:', err.message);
+      }
+
+      const errorMessage =
+        err.response?.data?.message ||
+        'Login failed. Please check your credentials and try again.';
       alert(errorMessage);
-      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
@@ -88,7 +100,10 @@ navigate('/dashboard');
 
         <p className="mt-6 text-center text-sm text-gray-500">
           Don’t have an account?{' '}
-          <Link to="/signup" className="text-blue-500 hover:underline hover:text-blue-600 transition">
+          <Link
+            to="/signup"
+            className="text-blue-500 hover:underline hover:text-blue-600 transition"
+          >
             Sign Up
           </Link>
         </p>
