@@ -20,8 +20,16 @@ const Signup: React.FC = () => {
     e.preventDefault();
     try {
       const response = await axios.post('http://localhost:5000/api/auth/signup', formData);
-      alert(response.data.message);
-      navigate('/login');
+      
+      const { token } = response.data;
+      if (token) {
+        localStorage.setItem('token', token);
+        alert('Signup successful!');
+        navigate('/dashboard'); // or wherever i want to take the user after signup
+      } else {
+        alert('Signup successful, but no token received');
+      }
+  
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         alert(error.response?.data?.message || 'Something went wrong');
@@ -30,6 +38,7 @@ const Signup: React.FC = () => {
       }
     }
   };
+  
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-white">

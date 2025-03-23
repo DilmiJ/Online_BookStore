@@ -3,48 +3,34 @@ const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const secretKey = 'Dilmi';
 
 // SIGNUP
 router.post('/signup', async (req, res) => {
-  console.log('Received data:', req.body);
-
-  const { name, email, password, role } = req.body;
-
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: 'Please fill all fields' });
-  }
+  const { name, email, password } = req.body;
 
   try {
-    const existingUser = await User.findOne({ email: email.trim().toLowerCase() });
-    if (existingUser) {
-      return res.status(409).json({ message: 'Email already exists' });
-    }
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(400).json({ message: 'User already exists' });
 
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    const userRole = role === 'admin' ? 'admin' : 'user'; // Safe default to 'user'
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
       name,
-      email: email.trim().toLowerCase(),
-      password: hashedPassword,
-      role: userRole
+      email,
+      password: hashedPassword
     });
 
-    const savedUser = await newUser.save();
+    await newUser.save();
 
-    res.status(201).json({
-      message: 'User created successfully!',
-      user: {
-        id: savedUser._id,
-        name: savedUser.name,
-        email: savedUser.email,
-        role: savedUser.role
-      }
-    });
+    const token = jwt.sign(
+      { id: newUser._id, role: newUser.role },  
+      'Dilmi',
+      { expiresIn: '1d' }
+    );
+
+    res.status(201).json({ message: 'Signup successful', token });
   } catch (error) {
-    console.error('Signup Error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -52,43 +38,60 @@ router.post('/signup', async (req, res) => {
 // LOGIN
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ message: 'Please provide email and password.' });
+  
+  const user = await User.findOne({ email });
+  if (!user || user.password !== password) {
+    return res.status(401).json({ message: 'Invalid credentials' });
   }
 
-  try {
-    const user = await User.findOne({ email: email.trim().toLowerCase() });
-    if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
-    }
+  const token = jwt.sign(
+    { id: user._id, email: user.email, role: user.role },
+    secretKey,
+    { expiresIn: '1d' }
+  );
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials.' });
-    }
-
-    
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      'your_jwt_secret', 
-      { expiresIn: '1d' }
-    );
-
-    res.status(200).json({
-      message: `${user.role === 'admin' ? 'Admin' : 'User'} login successful!`,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      },
-      token: token
-    });
-  } catch (error) {
-    console.error('Login Error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
+  res.json({ message: 'Login successful', token });
 });
+router.get('/:userId/cart', async (req, res) => {
+  const user = await User.findById(req.params.userId).populate('cart.bookId');
+  res.json(user.cart);
+});
+
+router.post('/:userId/cart', async (req, res) => {
+  const { bookId, quantity } = req.body;
+  const user = await User.findById(req.params.userId);
+  const cartItem = user.cart.find(item => item.bookId.toString() === bookId);
+  if (cartItem) {
+    cartItem.quantity += quantity;
+  } else {
+    user.cart.push({ bookId, quantity });
+  }
+  await user.save();
+  res.json(user.cart);
+});
+
+router.patch('/:userId/cart', async (req, res) => {
+  const { bookId, quantity } = req.body;
+  const user = await User.findById(req.params.userId);
+  const cartItem = user.cart.find(item => item.bookId.toString() === bookId);
+  if (!cartItem) return res.status(404).json({ message: 'Item not found in cart' });
+  cartItem.quantity = quantity;
+  await user.save();
+  res.json(user.cart);
+});
+
+router.post('/:userId/checkout', async (req, res) => {
+  const user = await User.findById(req.params.userId).populate('cart.bookId');
+  for (let item of user.cart) {
+    const book = await Book.findById(item.bookId._id);
+    if (book.quantity < item.quantity) return res.status(400).json({ message: `Not enough stock for ${book.title}` });
+    book.quantity -= item.quantity;
+    await book.save();
+  }
+  user.cart = [];
+  await user.save();
+  res.json({ message: 'Checkout successful' });
+});
+
 
 module.exports = router;

@@ -10,14 +10,21 @@ interface Book {
   description: string;
 }
 
+interface CartItem extends Book {
+  buyQuantity: number;
+}
+
 const Cart: React.FC = () => {
   const navigate = useNavigate();
-  const [cartItems, setCartItems] = useState<Book[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  // Load cart items from localStorage 
   useEffect(() => {
     const storedCart = JSON.parse(localStorage.getItem('cart') || '[]');
-    setCartItems(storedCart);
+    const cartWithBuyQuantity = storedCart.map((item: Book) => ({
+      ...item,
+      buyQuantity: 1
+    }));
+    setCartItems(cartWithBuyQuantity);
   }, []);
 
   const handleRemoveFromCart = (id: string) => {
@@ -26,40 +33,68 @@ const Cart: React.FC = () => {
     localStorage.setItem('cart', JSON.stringify(updatedCart));
   };
 
-  const handleIncrementQuantity = (id: string) => {
+  const handleQuantityChange = (id: string, value: number) => {
     const updatedCart = cartItems.map(item => {
       if (item._id === id) {
-        return { ...item, quantity: item.quantity + 1 };
+        const newQuantity = Math.max(1, Math.min(value, item.quantity));
+        return { ...item, buyQuantity: newQuantity };
       }
       return item;
     });
-
     setCartItems(updatedCart);
     localStorage.setItem('cart', JSON.stringify(updatedCart));
   };
 
+  const getTotal = () => {
+    return cartItems.reduce((acc, item) => acc + item.price * item.buyQuantity, 0);
+  };
+
+  const handleCheckout = async () => {
+    if (cartItems.length === 0) {
+      alert('Your cart is empty!');
+      return;
+    }
   
-  const handleDecrementQuantity = (id: string) => {
-    const updatedCart = cartItems.map(item => {
-      if (item._id === id && item.quantity > 1) {
-        return { ...item, quantity: item.quantity - 1 };
+    const user = localStorage.getItem('user');
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+  
+    let parsedUser;
+    try {
+      parsedUser = JSON.parse(user);
+    } catch {
+      parsedUser = { email: user };
+    }
+  
+    try {
+      const res = await fetch('http://localhost:5000/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userEmail: parsedUser.email || parsedUser.userEmail,
+          cartItems
+        })
+      });
+  
+      const data = await res.json();
+  
+      if (res.ok) {
+        navigate('/checkout');
+      } else {
+        alert(data.message || 'Failed to save cart');
       }
-      return item;
-    });
-
-    setCartItems(updatedCart);
-    localStorage.setItem('cart', JSON.stringify(updatedCart));
+    } catch (error) {
+      alert('Failed to save cart');
+    }
   };
-
-  const handleCheckout = () => {
-    navigate('/checkout');
-  };
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-blue-100 to-blue-300 p-4">
       <div className="flex justify-between items-center bg-white p-4 rounded-lg shadow mb-6">
         <h1 className="text-2xl font-semibold text-blue-600">Your Cart</h1>
-
         <button
           onClick={() => navigate(-1)}
           className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500"
@@ -84,22 +119,22 @@ const Cart: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-800">{item.title}</h3>
               <p className="text-gray-600">By {item.author}</p>
               <p className="text-gray-700 mt-2">Price: LKR {item.price}</p>
+              <p className="text-gray-700">In Stock: {item.quantity}</p>
 
-              
-              <div className="flex items-center mt-2 space-x-2">
-                <button
-                  onClick={() => handleDecrementQuantity(item._id)}
-                  className="px-2 py-1 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded"
-                >
-                  -
-                </button>
-                <span className="px-4">{item.quantity}</span>
-                <button
-                  onClick={() => handleIncrementQuantity(item._id)}
-                  className="px-2 py-1 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded"
-                >
-                  +
-                </button>
+              <div className="mt-4">
+                <label className="block text-sm text-gray-600 mb-1">Select Quantity</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={item.quantity}
+                  value={item.buyQuantity}
+                  onChange={(e) => handleQuantityChange(item._id, parseInt(e.target.value))}
+                  className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                />
+              </div>
+
+              <div className="mt-4 text-gray-800 font-semibold">
+                Subtotal: LKR {item.price * item.buyQuantity}
               </div>
 
               <button
@@ -114,7 +149,10 @@ const Cart: React.FC = () => {
       )}
 
       {cartItems.length > 0 && (
-        <div className="mt-8 flex justify-end">
+        <div className="mt-8 flex flex-col items-end">
+          <div className="text-xl font-semibold text-gray-800 mb-4">
+            Total: LKR {getTotal()}
+          </div>
           <button
             onClick={handleCheckout}
             className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 text-lg font-semibold"

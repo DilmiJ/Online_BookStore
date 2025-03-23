@@ -1,202 +1,245 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-interface Book {
+interface CartItem {
   _id: string;
   title: string;
+  author: string;
   price: number;
   quantity: number;
+  description: string;
+  buyQuantity: number;
 }
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
-
-  const [cartItems, setCartItems] = useState<Book[]>([]);
   const [billingAddress, setBillingAddress] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('cod'); 
-  const [cardNumber, setCardNumber] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [cvc, setCvc] = useState('');
-
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [paymentDetails, setPaymentDetails] = useState({
+    cardNumber: '',
+    expiryDate: '',
+    cvc: ''
+  });
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [totalPrice, setTotalPrice] = useState(0);
   const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
-    // Get user from localStorage
-    const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
-
-    if (!storedUser || !storedUser.email) {
-      // Redirect to login if user not found
-      navigate('/login');
-      return;
-    }
-
-    setUserEmail(storedUser.email);
-
-    // Get cart items from localStorage
-    const storedCart = JSON.parse(localStorage.getItem('cart') || '[]');
-    setCartItems(storedCart);
-
-    const total = storedCart.reduce((sum: number, item: Book) => {
-      return sum + item.price * item.quantity;
-    }, 0);
-
+    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    setCartItems(cart);
+    const total = cart.reduce((acc: number, item: CartItem) => acc + item.price * item.buyQuantity, 0);
     setTotalPrice(total);
+    const user = localStorage.getItem('user');
+    if (!user) {
+      navigate('/login');
+    } else {
+      try {
+        const parsedUser = JSON.parse(user);
+        setUserEmail(parsedUser.email || parsedUser.userEmail || parsedUser);
+      } catch {
+        setUserEmail(user);
+      }
+    }
   }, [navigate]);
 
-  const handlePayment = async () => {
-    // Validation for address and phone
-    if (!billingAddress || !phoneNumber) {
-      alert('Please fill in your billing address and phone number.');
+  const handlePhoneNumberChange = (value: string) => {
+    const numericValue = value.replace(/[^0-9]/g, '');
+    setPhoneNumber(numericValue);
+  };
+
+  const handleCardNumberChange = (value: string) => {
+    const numericValue = value.replace(/[^0-9]/g, '');
+    setPaymentDetails({ ...paymentDetails, cardNumber: numericValue });
+  };
+
+  const handleExpiryDateChange = (value: string) => {
+    const formattedValue = value.replace(/[^0-9/]/g, '');
+    setPaymentDetails({ ...paymentDetails, expiryDate: formattedValue });
+  };
+
+  const handleCVCChange = (value: string) => {
+    const numericValue = value.replace(/[^0-9]/g, '');
+    setPaymentDetails({ ...paymentDetails, cvc: numericValue });
+  };
+
+  const validatePhoneNumber = (phone: string) => {
+    const phoneRegex = /^[0-9]{10}$/;
+    return phoneRegex.test(phone);
+  };
+
+  const handleCheckout = () => {
+    if (!billingAddress.trim()) {
+      alert('Billing address is required');
       return;
     }
 
-    // Validation for card payment details
+    if (!phoneNumber.trim() || !validatePhoneNumber(phoneNumber)) {
+      alert('Valid 10-digit phone number is required');
+      return;
+    }
+
+    if (!paymentMethod) {
+      alert('Select a payment method');
+      return;
+    }
+
+    if (!cartItems.length) {
+      alert('Your cart is empty');
+      return;
+    }
+
+    if (!totalPrice) {
+      alert('Total price cannot be zero');
+      return;
+    }
+
+    if (!userEmail) {
+      alert('User email not found');
+      return;
+    }
+
     if (paymentMethod === 'card') {
-      if (!cardNumber || !expiryDate || !cvc) {
-        alert('Please fill in all card details.');
+      if (!paymentDetails.cardNumber.trim() || paymentDetails.cardNumber.length < 12) {
+        alert('Valid card number is required');
+        return;
+      }
+      if (!paymentDetails.expiryDate.trim() || !/^\d{2}\/\d{2}$/.test(paymentDetails.expiryDate)) {
+        alert('Valid expiry date is required (MM/YY)');
+        return;
+      }
+      if (!paymentDetails.cvc.trim() || paymentDetails.cvc.length < 3) {
+        alert('Valid 3-digit CVC is required');
         return;
       }
     }
 
-    const orderData = {
-      billingAddress,
-      phoneNumber,
-      paymentMethod,
-      cartItems,
-      totalPrice,
-      userEmail, // ✅ Send user email to backend
-      paymentDetails:
-        paymentMethod === 'card'
-          ? {
-              cardNumber,
-              expiryDate,
-              cvc,
-            }
-          : {},
-    };
+    fetch('http://localhost:5000/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        billingAddress,
+        phoneNumber,
+        paymentMethod,
+        paymentDetails: paymentMethod === 'card' ? paymentDetails : {},
+        cartItems: cartItems.map(item => ({
+          _id: item._id,
 
-    try {
-      const res = await fetch('http://localhost:5000/api/checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(orderData),
+
+          title: item.title, 
+
+
+          buyQuantity: item.buyQuantity,
+          price: item.price
+        })),
+        totalPrice,
+        userEmail
+      })
+    })
+      .then(async res => {
+        let data;
+        try {
+          data = await res.json();
+        } catch {
+          alert('Server error: invalid JSON response');
+          return;
+        }
+        if (res.ok) {
+          alert('Order placed successfully!');
+          localStorage.removeItem('cart');
+          navigate('/');
+        } else {
+          alert(data.message || 'Failed to place order');
+        }
+      })
+      .catch(() => {
+        alert('Checkout failed. Please try again later.');
       });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        alert('Payment Successful!');
-
-        // Clear the cart after successful payment
-        localStorage.removeItem('cart');
-
-        // Redirect to dashboard or success page
-        navigate('/dashboard');
-      } else {
-        alert(`Payment Failed: ${data.message}`);
-      }
-    } catch (error) {
-      console.error('Payment Error:', error);
-      alert('An error occurred during payment.');
-    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-100 to-blue-300 p-4">
-      <div className="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold text-blue-600 mb-4">Checkout</h1>
+    <div className="min-h-screen flex justify-center items-center bg-gradient-to-br from-blue-400 via-blue-300 to-blue-200 p-4">
+      <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg p-8">
+        <h2 className="text-3xl font-bold mb-8 text-center text-blue-600">Checkout</h2>
 
-        {/* Billing Address */}
-        <div className="mb-4">
-          <label className="block text-gray-700 font-medium">Billing Address</label>
-          <textarea
+        <div className="mb-6">
+          <label className="block text-md font-medium text-blue-700 mb-2">Billing Address</label>
+          <input
+            type="text"
             value={billingAddress}
             onChange={(e) => setBillingAddress(e.target.value)}
-            className="w-full p-2 border rounded mt-1"
-            placeholder="Enter your billing address"
+            placeholder="Enter billing address"
+            className="w-full px-4 py-3 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
 
-        {/* Phone Number */}
-        <div className="mb-4">
-          <label className="block text-gray-700 font-medium">Phone Number</label>
+        <div className="mb-6">
+          <label className="block text-md font-medium text-blue-700 mb-2">Phone Number</label>
           <input
-            type="tel"
+            type="text"
             value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-            className="w-full p-2 border rounded mt-1"
-            placeholder="Enter your phone number"
+            onChange={(e) => handlePhoneNumberChange(e.target.value)}
+            placeholder="Enter phone number"
+            className="w-full px-4 py-3 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
 
-        {/* Payment Method */}
-        <div className="mb-4">
-          <label className="block text-gray-700 font-medium">Payment Method</label>
+        <div className="mb-6">
+          <label className="block text-md font-medium text-blue-700 mb-2">Payment Method</label>
           <select
             value={paymentMethod}
             onChange={(e) => setPaymentMethod(e.target.value)}
-            className="w-full p-2 border rounded mt-1"
+            className="w-full px-4 py-3 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500 outline-none"
           >
-            <option value="cod">Cash on Delivery</option>
+            <option value="cash">Cash on Delivery</option>
             <option value="card">Card Payment</option>
           </select>
         </div>
 
-        {/* Card Payment Fields */}
         {paymentMethod === 'card' && (
-          <>
-            <div className="mb-4">
-              <label className="block text-gray-700 font-medium">Card Number</label>
+          <div className="space-y-6 mb-6">
+            <div>
+              <label className="block text-md font-medium text-blue-700 mb-2">Card Number</label>
               <input
                 type="text"
-                value={cardNumber}
-                onChange={(e) => setCardNumber(e.target.value)}
-                className="w-full p-2 border rounded mt-1"
-                placeholder="1234 5678 9012 3456"
+                value={paymentDetails.cardNumber}
+                onChange={(e) => handleCardNumberChange(e.target.value)}
+                placeholder="Enter card number"
+                className="w-full px-4 py-3 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
-
-            <div className="flex space-x-4 mb-4">
-              <div className="w-1/2">
-                <label className="block text-gray-700 font-medium">Expiry Date</label>
-                <input
-                  type="text"
-                  value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
-                  className="w-full p-2 border rounded mt-1"
-                  placeholder="MM/YY"
-                />
-              </div>
-
-              <div className="w-1/2">
-                <label className="block text-gray-700 font-medium">CVC</label>
-                <input
-                  type="text"
-                  value={cvc}
-                  onChange={(e) => setCvc(e.target.value)}
-                  className="w-full p-2 border rounded mt-1"
-                  placeholder="123"
-                />
-              </div>
+            <div>
+              <label className="block text-md font-medium text-blue-700 mb-2">Expiry Date (MM/YY)</label>
+              <input
+                type="text"
+                value={paymentDetails.expiryDate}
+                onChange={(e) => handleExpiryDateChange(e.target.value)}
+                placeholder="MM/YY"
+                className="w-full px-4 py-3 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500 outline-none"
+              />
             </div>
-          </>
+            <div>
+              <label className="block text-md font-medium text-blue-700 mb-2">CVC</label>
+              <input
+                type="text"
+                value={paymentDetails.cvc}
+                onChange={(e) => handleCVCChange(e.target.value)}
+                placeholder="CVC"
+                className="w-full px-4 py-3 rounded-lg border border-blue-300 focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+          </div>
         )}
 
-        {/* Total Price */}
-        <div className="text-lg font-semibold text-gray-700 mb-4">
-          Total Price: LKR {totalPrice}
+        <div className="mb-6 text-lg text-blue-700 font-semibold">
+          Total: <span className="text-blue-900">LKR {totalPrice}</span>
         </div>
 
-        {/* Pay Now Button */}
         <button
-          onClick={handlePayment}
-          className="w-full py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 text-lg font-semibold"
+          onClick={handleCheckout}
+          className="w-full bg-blue-600 text-white py-3 rounded-lg text-lg hover:bg-blue-700 transition duration-300"
         >
-          Pay Now
+          Place Order
         </button>
       </div>
     </div>

@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
+const authMiddleware = require('../middleware/authMiddleware');
+
 
 // Get all orders (admin)
 router.get('/orders', async (req, res) => {

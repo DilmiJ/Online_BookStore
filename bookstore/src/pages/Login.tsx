@@ -22,6 +22,9 @@ const Login: React.FC = () => {
       alert(response.data.message);
 
       localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('token', response.data.token);
+navigate('/dashboard');
+
 
       if (userData.role === 'admin') {
         navigate('/admin');

@@ -3,10 +3,25 @@ import React, { useEffect, useState } from 'react';
 interface Order {
   _id: string;
   userEmail: string;
+  billingAddress: string;
+  phoneNumber: string;
   totalPrice: number;
   orderStatus: string;
+  cartItems: {
+    _id: string;
+    title: string;
+    price: number;
+    quantity: number;
+  }[];
   createdAt: string;
 }
+const token = localStorage.getItem('token');
+
+const res = await fetch('http://localhost:5000/api/admin/orders', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
 
 const AdminOrders: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -18,8 +33,13 @@ const AdminOrders: React.FC = () => {
 
   const fetchOrders = async () => {
     setLoading(true);
+    const token = localStorage.getItem('token');
     try {
-      const res = await fetch('http://localhost:5000/api/admin/orders');
+      const res = await fetch('http://localhost:5000/api/admin/orders', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await res.json();
       if (res.ok) {
         setOrders(data.orders);
@@ -30,6 +50,7 @@ const AdminOrders: React.FC = () => {
       setLoading(false);
     }
   };
+  
 
   const updateOrderStatus = async (orderId: string, status: string) => {
     try {
@@ -45,7 +66,7 @@ const AdminOrders: React.FC = () => {
 
       if (res.ok) {
         alert('Order status updated!');
-        fetchOrders(); // Refresh orders
+        fetchOrders();
       } else {
         alert(`Error: ${data.message}`);
       }
@@ -63,14 +84,35 @@ const AdminOrders: React.FC = () => {
           <p>Loading orders...</p>
         ) : (
           orders.map((order) => (
-            <div key={order._id} className="border p-4 mb-4 rounded">
+            <div key={order._id} className="border p-4 mb-4 rounded shadow-sm bg-gray-50">
               <p><strong>Order ID:</strong> {order._id}</p>
               <p><strong>User Email:</strong> {order.userEmail}</p>
+              <p><strong>Billing Address:</strong> {order.billingAddress}</p>
+              <p><strong>Phone Number:</strong> {order.phoneNumber}</p>
               <p><strong>Total Price:</strong> LKR {order.totalPrice}</p>
-              <p><strong>Status:</strong> {order.orderStatus}</p>
+             
               <p><strong>Placed On:</strong> {new Date(order.createdAt).toLocaleString()}</p>
 
-              <div className="mt-2 space-x-2">
+              <div className="mt-4">
+                <h3 className="font-semibold text-blue-600 mb-2">Ordered Items:</h3>
+                <div className="space-y-2">
+                  {order.cartItems && order.cartItems.length > 0 ? (
+                    order.cartItems.map((item) => (
+                      <div key={item._id} className="flex justify-between items-center bg-white p-2 rounded shadow">
+                        <div>
+                          <p className="font-medium text-gray-800">📚 {item.title}</p>
+                          <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
+                        </div>
+                        <p className="font-semibold text-gray-800">LKR {item.price}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-600">No items in this order</p>
+                  )}
+                </div>
+              </div>
+              <p><strong>Status:</strong> {order.orderStatus}</p>
+              <div className="mt-4 space-x-2">
                 {['Pending', 'Processing', 'Shipped', 'Completed'].map((status) => (
                   <button
                     key={status}
