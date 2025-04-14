@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MdInventory } from 'react-icons/md'; 
 import { FaChartLine } from 'react-icons/fa'; 
-
+// commentesd
 const Admin: React.FC = () => {
   const navigate = useNavigate();
   const [userName, setUserName] = useState('');
